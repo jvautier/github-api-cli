@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import argparse
+import inspect
+import json
+import sys
+import os
+# import gitlab
+import requests
+import traceback
+
+class GithubCli():
+    def __init__(self, api_url="https://api.github.com", username="", api_key="", **kwargs):
+        self._api_url = api_url
+        self._username = username
+        self._api_key = api_key
+
+
+    def request(self, method, url, **kwargs):
+
+        request_parameters = {}
+        request_parameters['url'] = self._api_url + url.replace('//', '/')
+        request_parameters['url'] = request_parameters['url'].format(**kwargs)
+
+        request_parameters['headers'] = {
+            'Accept': 'application/json',
+            'Content-type': 'application/json'
+            }
+
+        request_parameters['data']=kwargs.get('data', None)
+        request_parameters['json']=kwargs.get('json', None)
+        request_parameters['timeout']=kwargs.get('timeout', 30.0)
+
+        if not self._username and not self._api_key:
+            return requests.request(
+                method=method,
+                **request_parameters
+            )
+        else:
+            return requests.request(
+                auth=(self._username, self._api_key),
+                method=method,
+                **request_parameters
+            )
+
+        
+
+
+    # def get(self,url,**kwargs):
+    #     return self.request('GET', url, **kwargs)
+    # def post(self,url,**kwargs):
+    #     return self.request('POST', url, **kwargs)
+    # def put(self,url,**kwargs):
+    #     return self.request('PUT', url, **kwargs)
+    # def delete(self,url,**kwargs):
+    #     return self.request('DELETE', url, **kwargs)
+
+class GithubApiCtl():
+    
+    def call(self, **kwargs):
+        cli = GithubCli(kwargs.get('api_url'),kwargs.get('username'),kwargs.get('private_token'))
+        return cli.request(**kwargs).json()
+
+    def parse(self):
+        self._parser = parser = argparse.ArgumentParser(description='github api ctl')
+        parser.add_argument(
+            "--api-url",
+            default=os.environ.get('GITHUB_API_URL', None),
+            help="api_url",
+            dest="api_url")
+
+        parser.add_argument(
+            "--username",
+            default=os.environ.get('GITHUB_USERNAME', None),
+            help="username",
+            dest="username")
+
+        parser.add_argument(
+            "--private-token",
+            default=os.environ.get('GITHUB_PRIVATE_TOKEN', None),
+            help="github's private api token",
+            dest="private_token")
+        parser.set_defaults(current_parser='_parser')
+        parser.set_defaults(method='GET')
+        parser.add_argument(
+            '-X', '--method', help='GET,POST,PATCH,PUT,DELETE', dest='method')
+        parser.add_argument('-d', '--data', help='data')
+        parser.add_argument('url', help='url, example /toto/tata')
+        
+        args = parser.parse_args()
+        args_for_func = vars(args)
+        result = self.call(**args_for_func)
+        
+        print(json.dumps(result, indent=2))
+
+
+def main():
+    ctl = GithubApiCtl()
+    ctl.parse()
+
+if __name__ == '__main__':
+    main()
