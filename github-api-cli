@@ -23,8 +23,8 @@ class GithubCli():
         request_parameters['url'] = request_parameters['url'].format(**kwargs)
 
         request_parameters['headers'] = {
-            'Accept': 'application/json',
-            'Content-type': 'application/json'
+            'Accept': 'application/vnd.github.mercy-preview+json',
+            'Content-type': 'application/json',
             }
 
         request_parameters['data']=kwargs.get('data', None)
